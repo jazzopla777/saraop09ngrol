@@ -69,7 +69,7 @@ jobs:
               $cleanAddr = $rawTcpAddr -replace "tcp://", ""
               Write-Output "========================================"
               Write-Output "✅ RDP Connection Details:"
-              Write-Output "📌 Address  : $cleanAddr"
+              Write-Output "$cleanAddr"
               Write-Output "👤 Username : runneradmin"
               Write-Output "🔑 Password : P@ssw0rd!"
               Write-Output "========================================"
