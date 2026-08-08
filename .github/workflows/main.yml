@@ -1,10 +1,10 @@
-name: Setup Windows VM RDP on Self-Hosted Runner
+name: Setup Native Linux RDP on Self-Hosted Runner
 
 on:
   workflow_dispatch:  # Manual trigger only
 
 jobs:
-  setup-windows-vm:
+  setup-rdp:
     runs-on: self-hosted
     timeout-minutes: 360  # Max allowed: 6 hours
 
@@ -12,32 +12,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install QEMU and KVM dependencies
+      - name: Install Lightweight Desktop & XRDP
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils curl jq
+          DEBIAN_FRONTEND=noninteractive sudo apt-get install -y xfce4 xfce4-goodies xrdp curl jq
+          echo "xfce4-session" > ~/.xsession
+          sudo service xrdp restart || true
 
-      - name: Install Docker and Setup Windows VM
+      - name: Set Password for RDP Access
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y docker.io qemu-kvm
-          
-          # systemctl ki jagah service command
-          sudo service docker start || true
-
-          sudo docker run -d \
-            --name windows-vm \
-            --device=/dev/kvm \
-            --cap-add=NET_ADMIN \
-            -p 3389:3389 \
-            -p 8006:8006 \
-            -e VERSION="win10" \
-            -e RAM_SIZE="4G" \
-            -e CPU_CORES="2" \
-            dockur/windows
-
-          echo "⏳ Waiting for Windows VM to initialize..."
-          sleep 60
+          # User ka password P@ssw0rd! set kar rahe hain
+          echo "$USER:P@ssw0rd!" | sudo chpasswd
 
       - name: Download and Extract ngrok
         run: |
@@ -67,9 +52,10 @@ jobs:
           response=$(curl -s $apiUrl)
           tcpAddr=$(echo $response | jq -r '.tunnels[] | select(.proto=="tcp") | .public_url')
           if [ -n "$tcpAddr" ]; then
-            echo "✅ Connect to Windows RDP using: $tcpAddr"
-            echo "👤 Default User: admin"
-            echo "🔑 Default Password: (Leave blank or set via RDP)"
+            cleanAddr=$(echo $tcpAddr | sed 's|tcp://||')
+            echo "✅ Connect using Remote Desktop (RDP): $cleanAddr"
+            echo "👤 Username: $USER"
+            echo "🔑 Password: P@ssw0rd!"
           else
             echo "⚠️ Unable to fetch tunnel info yet."
           fi
