@@ -1,4 +1,4 @@
-name: Setup ngrok and Remote Desktop
+name: Setup ngrok and Remote Desktop (Linux RDP)
 
 on:
   workflow_dispatch:  # Manual trigger only
@@ -11,6 +11,19 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
+      - name: Install Desktop Environment & XRDP
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y xfce4 xfce4-goodies xrdp
+          echo "xfce4-session" > ~/.xsession
+          sudo systemctl enable xrdp
+          sudo service xrdp restart
+
+      - name: Set RDP User Password
+        run: |
+          # User 'runner' ya 'root' ka password 'P@ssw0rd!' set kar rahe hain
+          echo "$USER:P@ssw0rd!" | sudo chpasswd
 
       - name: Download ngrok (with retry)
         run: |
@@ -36,9 +49,9 @@ jobs:
         env:
           NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
 
-      - name: Start ngrok TCP tunnel
+      - name: Start ngrok TCP tunnel (RDP Port 3389)
         run: |
-          ./ngrok tcp 22 --log=stdout > ngrok.log 2>&1 &
+          ./ngrok tcp 3389 --log=stdout > ngrok.log 2>&1 &
           sleep 10
           cat ngrok.log || true
 
@@ -48,7 +61,9 @@ jobs:
           response=$(curl -s $apiUrl)
           tcpAddr=$(echo $response | jq -r '.tunnels[] | select(.proto=="tcp") | .public_url')
           if [ -n "$tcpAddr" ]; then
-            echo "✅ Connect using: $tcpAddr"
+            echo "✅ Connect using Remote Desktop (RDP): $tcpAddr"
+            echo "👤 Username: $USER"
+            echo "🔑 Password: P@ssw0rd!"
           else
             echo "⚠️ Unable to fetch tunnel info yet."
           fi
