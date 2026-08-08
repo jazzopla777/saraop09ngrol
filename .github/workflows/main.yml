@@ -38,6 +38,32 @@ jobs:
 
       - name: Start ngrok TCP tunnel
         run: |
+          ./ngrok tcp 22 --log=stdout > ngrok.log 2>&1 &
+          sleep 10
+          cat ngrok.log || true
+
+      - name: Display connection info
+        run: |
+          sudo apt-get update -y && sudo apt-get install -y jq
+          apiUrl="http://127.0.0.1:4040/api/tunnels"
+          response=$(curl -s $apiUrl)
+          tcpAddr=$(echo $response | jq -r '.tunnels[] | select(.proto=="tcp") | .public_url')
+          if [ -n "$tcpAddr" ]; then
+            echo "✅ Connect using: $tcpAddr"
+          else
+            echo "⚠️ Unable to fetch tunnel info yet."
+          fi
+
+      - name: Keep Alive (6 hours)
+        run: |
+          for i in $(seq 1 72); do
+            echo "⏳ Still alive... Minute: $((i * 5))"
+            sleep 300
+          done
+        continue-on-error: true          NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+
+      - name: Start ngrok TCP tunnel
+        run: |
           nohup ./ngrok tcp 22 > ngrok.log 2>&1 &
           sleep 10
           cat ngrok.log || true
